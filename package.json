@@ -1,0 +1,20 @@
+{
+  "name": "vintage-proxy",
+  "version": "0.0.1",
+  "description": "Simple proxy server that lets vintage browsers view the internet as it was at a selected date in the past.",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mswestenhaver/vintage-proxy.git"
+  },
+  "author": "Michael Westenhaver",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/mswestenhaver/vintage-proxy/issues"
+  },
+  "homepage": "https://github.com/mswestenhaver/vintage-proxy#readme"
+}
