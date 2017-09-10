@@ -10,23 +10,31 @@ const mimeTypes = {
     'css': 'text/css',
 };
 
+let virtualDate = '2000';
 
 http.createServer(function (request, response) {
-    // TODO: Implement a date controller
     // TODO: Implement a real blacklist (block urls)
     // TODO: Implement a whitelist to pass on to normal internets
-    if (request.url !== 'http://ocsp.digicert.com/' && request.url !== 'http://clients1.google.com/ocsp') {
-        wayBack (request, response, '19970404064352');
+
+    const requestUrl = url.parse(request.url);
+
+    if (requestUrl.hostname === 'setdate') {
+        virtualDate = requestUrl.pathname.split('/').pop();
+        //TODO: validate the date
+        response.writeHead(200, {
+            'Content-Type': 'text/html',
+        });
+        response.end(`Date set to: ${virtualDate}`, 'utf8');
+    } else if (request.url !== 'http://ocsp.digicert.com/' && request.url !== 'http://clients1.google.com/ocsp') {
+        wayBack (requestUrl, response, virtualDate);
     }
 }).listen(8080);
 
 
-function wayBack (request, response, baseDate) {
-    //TODO: pull out the getting and responding functions if possible.
-    const requestUrl = url.parse(request.url);
+function wayBack (requestUrl, response, baseDate) {
     const ext = requestUrl.pathname.split('.').pop();
     const contentType = mimeTypes[ext] || 'text/html';
-    const getUrl = `http://web.archive.org/web/${baseDate}id_/${request.url}`;
+    const getUrl = `http://web.archive.org/web/${baseDate}id_/${requestUrl.href}`;
 
     const req = http.get(getUrl, res => {
         const data = [];
@@ -36,15 +44,12 @@ function wayBack (request, response, baseDate) {
         res.on('end', () => {
             const buffer = Buffer.concat(data);
             const bufferStr = buffer.toString();
-            // console.log('stream starts with: ' + body.substr(0, 19));
             if (bufferStr.substr(0, 13) === 'found capture') {
                 baseDate = bufferStr.substr(17, 14);
-                // console.log('resetting date to: ' + baseDate);
                 // TODO: Instead of recursion, use wayback api to get the date first.
-                wayBack(request, response, baseDate);
+                wayBack(requestUrl, response, baseDate);
             }
             else {
-                // console.log ('received: ' + url);
                 response.writeHead(200, {
                     'Content-Type': contentType,
                 });
