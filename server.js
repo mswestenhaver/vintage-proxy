@@ -31,35 +31,35 @@ http.createServer(function (request, response) {
 }).listen(8080);
 
 
-function wayBack (requestUrl, response, baseDate) {
+const wayBack = (requestUrl, response, baseDate) => {
+    const serve = (proxyUrl) => {
+        const req = http.get(proxyUrl, (res) => {
+            const { statusCode } = res;
+            if (statusCode === 302 ) {
+                serve(url.parse(res.headers['location']), response, baseDate);
+            } else {
+                const data = [];
+                res.on('data', (chunk) => {
+                    data.push(chunk);
+                });
+                res.on('end', () => {
+                    const buffer = Buffer.concat(data);
+                    response.writeHead(200, {
+                        'Content-Type': contentType,
+                    });
+                    response.end(buffer, 'binary');
+                });
+            }
+        });
+        req.on('error', (ex) => {
+            console.log('///////////// Error with the request /////////////');
+            console.log ('Path: ' + req.path);
+            console.log ('ex: ' + ex);
+        });
+    };
+
     const ext = requestUrl.pathname.split('.').pop();
     const contentType = mimeTypes[ext] || 'text/html';
     const getUrl = `http://web.archive.org/web/${baseDate}id_/${requestUrl.href}`;
-
-    const req = http.get(getUrl, res => {
-        const data = [];
-        res.on('data', chunk => {
-            data.push(chunk);
-        });
-        res.on('end', () => {
-            const buffer = Buffer.concat(data);
-            const bufferStr = buffer.toString();
-            if (bufferStr.substr(0, 13) === 'found capture') {
-                baseDate = bufferStr.substr(17, 14);
-                // TODO: Instead of recursion, use wayback api to get the date first.
-                wayBack(requestUrl, response, baseDate);
-            }
-            else {
-                response.writeHead(200, {
-                    'Content-Type': contentType,
-                });
-                response.end(buffer, 'binary');
-            }
-        });
-    });
-    req.on('error', ex => {
-        console.log('///////////// Error with the request /////////////');
-        console.log ('Path: ' + req.path);
-        console.log ('ex: ' + ex);
-    });
-}
+    serve(getUrl);
+};
